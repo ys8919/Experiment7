@@ -1,20 +1,26 @@
 package com.example.experiment7_1;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.AnimatedImageDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.TypedValue;
+import android.view.Display;
 import android.view.Gravity;
 
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -22,6 +28,7 @@ import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.experiment7_1.Bean.ClassList;
 import com.example.experiment7_1.Bean.Curriculum;
@@ -46,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
 
     //private static boolean isFirst = true;
     private ClassList classInfo;
+    private  Map <Integer,ClassList> cl;
 
     public static final int PASS_0 = 0;
     public static final int PASS_1 = 1;
@@ -56,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
         tmpLayout = (RelativeLayout) findViewById(R.id.Monday);
         spinner=findViewById(R.id.spinner1);
         FloatingActionButton=findViewById(R.id.floatingActionButton);
+        cl=ServiceFactory.Service(getApplicationContext()).selectClassList();
         //点击下拉框事件
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
 
@@ -71,8 +80,8 @@ public class MainActivity extends AppCompatActivity {
                     Integer mapKey = entry.getKey();
                     ClassList mapValue = entry.getValue();
                     if(week>=mapValue.getWeekSumStart()&&week<=mapValue.getWeekSumEnd()){
-                        classInfo=mapValue;
-                        addView(mapValue.getCLid(),week,mapValue.getWeekday(),mapValue.getNodeStart(),mapValue.getNodeEnd(),mapValue.getClassCame()+"\n @ "+mapValue.getClassRoom());
+                        //classInfo=mapValue;
+                        addView(mapValue.getId(),mapValue.getCLid(),week,mapValue.getWeekday(),mapValue.getNodeStart(),mapValue.getNodeEnd(),mapValue.getClassCame()+"\n @ "+mapValue.getClassRoom());
                     }
 
                     //Log.d(TAG, "onCreate: Map ClassList:"+mapValue.toString());
@@ -140,7 +149,7 @@ public class MainActivity extends AppCompatActivity {
         return tv;
     }
     //添加组件
-    private void addView(int className,int week,int i,int start,int end,String text){
+    private void addView(int cId,int classId,int week,int i,int start,int end,String text){
         TextView tv;
        // Log.d(TAG, "addView: text"+text);
         switch (i){
@@ -169,7 +178,7 @@ public class MainActivity extends AppCompatActivity {
                 break;
         }
         tv= createTv(start,end,text);
-        int ran=(week+className);
+        int ran=(week+classId);
         while(true){
             if(ran<=9){
                 break;
@@ -177,6 +186,7 @@ public class MainActivity extends AppCompatActivity {
             ran=ran%9;
         }
         tv.setBackground(colorSelect(ran));
+        tv.setTag(cId);
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP,10);
         tv.setTextColor(Color.parseColor("#ffffff"));
         tv.setLineSpacing(1, (float) 1.5);
@@ -185,6 +195,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 //Log.d(TAG, "onClick: ");
+
+                int tag=Integer.parseInt(v.getTag().toString());
+                ClassList classInfo=cl.get(tag);
                 informationView(classInfo);
             }
         });
@@ -272,7 +285,7 @@ public class MainActivity extends AppCompatActivity {
     private void informationView(ClassList classList){
         //隐藏按钮
         FloatingActionButton.hide();
-        MainLayout=findViewById(R.id.ConstraintLayout1);
+       /* MainLayout=findViewById(R.id.ConstraintLayout1);
         infoHeight= (int) (MainLayout.getHeight());
         infoWidth= (int) (MainLayout.getWidth());
         ConstraintLayout.LayoutParams params = new ConstraintLayout.LayoutParams(infoWidth,infoHeight);
@@ -301,6 +314,53 @@ public class MainActivity extends AppCompatActivity {
                 FloatingActionButton.show();
             }
         });
+
+
+        final String[] items = new String[]{"  "+classList.getClassCame(),
+                "  "+classList.getClassRoom(),
+                "  "+classList.getWeekSumStart()+"-"+classList.getWeekSumEnd()+"周",
+                "  "+classList.getNodeStart()+"-"+classList.getNodeEnd()+"节",
+                "  "+classList.getDayTime()};//创建item
+                */
+        /*AlertDialog alertDialog = new AlertDialog.Builder(this)
+                .setTitle("课程详细信息")
+                .setMessage("课程名：  "+classList.getClassCame()+
+                        "\n地   点：  "+classList.getClassRoom()+
+                        "\n周   数：  "+classList.getWeekSumStart()+"-"+classList.getWeekSumEnd()+"周"+
+                        "\n节   数：  "+classList.getNodeStart()+"-"+classList.getNodeEnd()+"节"+
+                        "\n时   间：  "+classList.getDayTime())
+                .setPositiveButton("确定", new DialogInterface.OnClickListener() {//添加"Yes"按钮
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        //Toast.makeText(MainActivity.this, "这是确定按钮", Toast.LENGTH_SHORT).show();
+                        FloatingActionButton.show();
+                    }
+                })
+                .create();
+        alertDialog.show();
+
+         */
+        InfoDialog alertDialog = new InfoDialog.Builder(this)
+                .setTitle("课程详细信息")
+                .setMessage(classList)
+                .setButton("确定", new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        FloatingActionButton.show();
+                    }//添加"Yes"按钮
+
+                })
+                .create();
+        alertDialog.show();
+        Window window = alertDialog.getWindow();
+        window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));  // 有白色背景，加这句代码
+
+        WindowManager m = getWindowManager();
+        Display d = m.getDefaultDisplay();  //为获取屏幕宽、高
+        android.view.WindowManager.LayoutParams p = alertDialog.getWindow().getAttributes();  //获取对话框当前的参数值
+        p.height = (int) (d.getHeight() * 0.5);   //高度设置为屏幕的0.3
+        p.width = (int) (d.getWidth() * 0.7);    //宽度设置为屏幕的0.5
+        alertDialog.getWindow().setAttributes(p);     //设置生效
     }
 
 
@@ -319,8 +379,8 @@ public class MainActivity extends AppCompatActivity {
                 Integer mapKey = entry.getKey();
                 ClassList mapValue = entry.getValue();
                 if(week>=mapValue.getWeekSumStart()&&week<=mapValue.getWeekSumEnd()){
-                    classInfo=mapValue;
-                    addView(mapValue.getCLid(),week,mapValue.getWeekday(),mapValue.getNodeStart(),mapValue.getNodeEnd(),mapValue.getClassCame()+"\n @ "+mapValue.getClassRoom());
+                    //classInfo=mapValue;
+                    addView(mapValue.getId(),mapValue.getCLid(),week,mapValue.getWeekday(),mapValue.getNodeStart(),mapValue.getNodeEnd(),mapValue.getClassCame()+"\n @ "+mapValue.getClassRoom());
                 }
 
                 //Log.d(TAG, "onCreate: Map ClassList:"+mapValue.toString());
